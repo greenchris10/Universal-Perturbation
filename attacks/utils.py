@@ -6,6 +6,8 @@ import os
 
 class Preprocessor:
     def __init__(self, image_path) -> None:
+        self.normalize_mean = torch.tensor([0.485, 0.456, 0.406]).view(3,1,1)
+        self.normalize_std = torch.tensor([0.229, 0.224, 0.225]).view(3,1,1)
         self.transform = v2.Compose([v2.Resize((224, 224)),
                                      v2.ToImage(),
                                      v2.ToDtype(torch.float32, scale=True),
@@ -29,6 +31,22 @@ class Preprocessor:
         print(f"test data shape: {test_data[0].shape}")
 
         return train_data, test_data
+    
+    def denormalize_image(self, image_tensor):
+        """Convert image from normalized range back to [0,1] range."""
+        return image_tensor * self.normalize_std + self.normalize_mean
+    
+    def save_image(self, tensor, path):
+        """Save tensor as image."""
+
+        # Denormalize tensor
+        tensor = self.denormalize_image(tensor)
+
+        # Convert to PIL Image
+        tensor = tensor.squeeze(0)
+        tensor = torch.clamp(tensor,0, 1)
+        tensor = v2.ToPILImage()(tensor)
+        tensor.save(path)
     
     def get_model(self):
         return self.model
